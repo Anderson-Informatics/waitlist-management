@@ -13,7 +13,7 @@ export const useResultStore = defineStore("result-store", {
     // Get all results from DB
     async getAll() {
       try {
-        let data = await $fetch(`http://localhost:3000/api/results`);
+        let data = await $fetch("api/results");
         this.results = data;
         return data;
       } catch (e) {
@@ -22,7 +22,7 @@ export const useResultStore = defineStore("result-store", {
     },
     async getSchools() {
       try {
-        let data = await $fetch(`http://localhost:3000/api/schools`);
+        let data = await $fetch("api/schools");
         this.schools = data;
       } catch (e) {
         console.log(e.message);
@@ -30,13 +30,10 @@ export const useResultStore = defineStore("result-store", {
     },
     async updateResult(result) {
       try {
-        let response = await $fetch(
-          `http://localhost:3000/api/results/${result._id}`,
-          {
-            method: "POST",
-            body: result.update,
-          }
-        );
+        let response = await $fetch(`api/results/${result._id}`, {
+          method: "POST",
+          body: result.update,
+        });
         console.log(response);
       } catch (e) {
         console.log(e.message);
