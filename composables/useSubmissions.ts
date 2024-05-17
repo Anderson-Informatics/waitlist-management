@@ -1,5 +1,7 @@
-import submissionData from './submissionData';
+//import submissionData from './submissionData';
+import { Submission } from "~~/types/submission";
 
-export const useSubmissions = () => {
-  return submissionData.submissions;
-}
+export const useSubmissions = async () => {
+  const submissions = await useFetch<Submission>("api/submissions");
+  return submissions;
+};
