@@ -62,62 +62,64 @@ const headers: Header[] = [
           />
         </div>
       </div>
-      <EasyDataTable
-        :search-value="search"
-        empty-message="No submissions"
-        :headers="headers"
-        :items="submissionStore.submissions"
-        :filter-options="filterOptions"
-      >
-        <template #item-fullname="{ FullName, submissionId }">
-          <NuxtLink
-            :to="`submissions/${submissionId}`"
-            class="text-indigo-500"
-            >{{ FullName }}</NuxtLink
-          >
-        </template>
-        <template #header-Grade="header">
-          <div class="filter-column">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-4 h-4 inline"
-              @click.stop="showGradeFilter = !showGradeFilter"
+      <ClientOnly>
+        <EasyDataTable
+          :search-value="search"
+          empty-message="No submissions"
+          :headers="headers"
+          :items="submissionStore.submissions"
+          :filter-options="filterOptions"
+        >
+          <template #item-fullname="{ FullName, submissionId }">
+            <NuxtLink
+              :to="`submissions/${submissionId}`"
+              class="text-indigo-500"
+              >{{ FullName }}</NuxtLink
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
-              />
-            </svg>
-            {{ header.text }}
-            <div
-              v-if="showGradeFilter"
-              class="absolute top-10 right-1 z-10 w-40 p-3 bg-white rounded-lg shadow"
-            >
-              <ul class="text-left">
-                <li v-for="(grade, index) in grades">
-                  <input
-                    :id="index"
-                    type="checkbox"
-                    v-model="gradeFilter"
-                    :value="grade"
-                    class="w-4 h-4 bg-gray-300 rounded text-sm"
-                  />
-                  <label
-                    :for="index"
-                    class="ml-2 text-sm font-medium text-gray-900"
-                    >{{ grade }}</label
-                  >
-                </li>
-              </ul>
+          </template>
+          <template #header-Grade="header">
+            <div class="filter-column">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-4 h-4 inline"
+                @click.stop="showGradeFilter = !showGradeFilter"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
+                />
+              </svg>
+              {{ header.text }}
+              <div
+                v-if="showGradeFilter"
+                class="absolute top-10 right-1 z-10 w-40 p-3 bg-white rounded-lg shadow"
+              >
+                <ul class="text-left">
+                  <li v-for="(grade, index) in grades">
+                    <input
+                      :id="index"
+                      type="checkbox"
+                      v-model="gradeFilter"
+                      :value="grade"
+                      class="w-4 h-4 bg-gray-300 rounded text-sm"
+                    />
+                    <label
+                      :for="index"
+                      class="ml-2 text-sm font-medium text-gray-900"
+                      >{{ grade }}</label
+                    >
+                  </li>
+                </ul>
+              </div>
             </div>
-          </div>
-        </template>
-      </EasyDataTable>
+          </template>
+        </EasyDataTable>
+      </ClientOnly>
     </div>
   </div>
 </template>

@@ -13,7 +13,7 @@ export const useResultStore = defineStore("result-store", {
     // Get all results from DB
     async getAll() {
       try {
-        let data = await $fetch("api/results");
+        let data = await $fetch("/api/results");
         this.results = data;
         return data;
       } catch (e) {
@@ -22,7 +22,7 @@ export const useResultStore = defineStore("result-store", {
     },
     async getSchools() {
       try {
-        let data = await $fetch("api/schools");
+        let data = await $fetch("/api/schools");
         this.schools = data;
       } catch (e) {
         console.log(e.message);
@@ -30,7 +30,7 @@ export const useResultStore = defineStore("result-store", {
     },
     async updateResult(result) {
       try {
-        let response = await $fetch(`api/results/${result._id}`, {
+        let response = await $fetch(`/api/results/${result._id}`, {
           method: "POST",
           body: result.update,
         });
@@ -42,7 +42,7 @@ export const useResultStore = defineStore("result-store", {
     },
     async adjustRankings(ids) {
       try {
-        let response = await $fetch("api/results/adjust-rank", {
+        let response = await $fetch("/api/results/adjust-rank", {
           method: "POST",
           body: {
             ids: ids,

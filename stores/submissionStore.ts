@@ -10,7 +10,7 @@ export const useSubmissionStore = defineStore("submission-store", {
     // Get all results from DB
     async getAll() {
       try {
-        let data = await $fetch("http://localhost:3000/api/submissions");
+        let data = await $fetch("/api/submissions");
         this.submissions = data;
         return data;
       } catch (e) {
@@ -20,9 +20,7 @@ export const useSubmissionStore = defineStore("submission-store", {
     async getOne(submissionId) {
       try {
         // Maybe I can figure out how to fix this full URL in the long term?
-        let data = await $fetch(
-          `http://localhost:3000/api/submissions/${submissionId}`
-        );
+        let data = await $fetch(`/api/submissions/${submissionId}`);
         this.submission = data;
         return data;
       } catch (e) {
