@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   modules: ["@vueuse/nuxt", "@nuxtjs/supabase", "@pinia/nuxt"],
   devtools: { enabled: true },
   css: ["~/assets/css/main.css"],
-  ssr: true,
+  ssr: false,
   typescript: {
     shim: false,
   },
