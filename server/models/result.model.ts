@@ -12,10 +12,13 @@ const schema: mongoose.Schema = new mongoose.Schema({
   LastName: String,
   ChoiceRank: Number,
   Priority: Number,
-  submissionDate: String,
+  submissionDate: Date,
   lotteryList: String,
   adjustedRank: Number,
   TestDate: String,
+  queueStatus: String,
+  queueDate: Date,
+  confirmedEnrollment: Boolean,
 });
 
 // results model

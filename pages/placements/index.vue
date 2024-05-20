@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import type { Header, Item, FilterOption } from "vue3-easy-data-table";
 
-// Get the results data from the Pinia store
+// Get the results and schools data from the Pinia store
 const resultStore = useResultStore();
 await useAsyncData("results", () => resultStore.getAll(), {});
+await useAsyncData("schools", () => resultStore.getSchools(), {});
 
 //Search for record in table
 const search = ref("");
 //Grade Filter array
 const gradeFilter = ref([]);
 const schoolFilter = ref([]);
+const listFilter = ref([]);
 
+// This is the filter function used by vue3-easy-data-table
 const filterOptions = computed((): FilterOption[] => {
   const filterOptionsArray: FilterOption[] = [];
   if (gradeFilter.value.length) {
@@ -27,9 +30,17 @@ const filterOptions = computed((): FilterOption[] => {
       criteria: schoolFilter.value,
     });
   }
+  if (listFilter.value.length) {
+    filterOptionsArray.push({
+      field: "lotteryList",
+      comparison: "in",
+      criteria: listFilter.value,
+    });
+  }
   return filterOptionsArray;
 });
 
+// Dropdown options for the different filter menus
 const grades = ref([
   "Pre-K",
   "Kindergarten",
@@ -42,8 +53,7 @@ const grades = ref([
   "7",
   "8",
 ]);
-
-const schools = ref([
+const schoolNames = ref([
   "Bates Academy",
   "Chrysler Elementary",
   "Edison Elementary",
@@ -52,126 +62,373 @@ const schools = ref([
   "Palmer Park Preparatory Academy",
   "The School at Marygrove",
 ]);
+const lists = ref(["Offered List", "Waiting List", "Declined Offer"]);
 
+// This is the toggle for the dropdown filters
 const showGradeFilter = ref(false);
 const showSchoolFilter = ref(false);
+const showListFilter = ref(false);
 
 // headers for the table
 const headers: Header[] = [
   { text: "#", value: "rank", sortable: true },
   { text: "School", value: "School" },
-  { text: "List", value: "lotteryList", sortable: true },
+  { text: "Grade", value: "Grade", width: 100 },
+  { text: "List", value: "list", width: 150 },
   { text: "Rank", value: "adjustedRank", sortable: true },
   { text: "First", value: "FirstName", sortable: true },
   { text: "Last", value: "LastName", sortable: true },
-  { text: "Grade", value: "Grade", width: 100 },
+  { text: "Choice", value: "ChoiceRank", sortable: true },
+  { text: "Actions", value: "actions" },
 ];
+
+// Helpers for the edit modal component
+const selectedResult = ref({});
+const showDeclineModal = ref(false);
+const pendingChanges = ref([]);
+const pendingStatus = ref(false);
+const buttonText = ref("Check");
+
+// This will reset the edit modal component
+const declineItem = (val: Item) => {
+  selectedResult.value = val;
+  showDeclineModal.value = true;
+  // These are the empty starting defaults for the form
+  pendingChanges.value = [];
+  pendingStatus.value = false;
+  buttonText.value = "Check";
+};
+const checkLowerOffers = (payload: Object) => {
+  yarn;
+  let offers = resultStore.results.filter(
+    (item) =>
+      item.submissionId === payload.submissionId && item._id != payload._id
+  );
+  console.log("Lower offers:", offers);
+};
+const adjustRankings = (payload: Object) => {
+  // filter to the same school, grade, and lotteryList and lower ranked results
+  let filtered = resultStore.results.filter(
+    (item) =>
+      item.SchoolID === payload.SchoolID &&
+      item.Grade === payload.Grade &&
+      item.lotteryList === payload.lotteryList &&
+      item.adjustedRank > payload.currentRank
+  );
+  // Create an Array of ids from the lower ranked results
+  let ids = filtered.map((item) => item._id);
+  if (payload.stage === "Check") {
+    // Add info to pending changes array to display as interim step
+    pendingChanges.value.push(
+      `Move ${ids.length} applicants up the ${payload.lotteryList} (${payload.stage})`
+    );
+  }
+  if (payload.stage === "Submit Changes") {
+    // Update the filtered Pinia Store
+    filtered.map((obj) => {
+      return { ...obj, adjustedRank: (obj.adjustedRank += -1) };
+    });
+    // Send the ids to update the list rankings
+    resultStore.adjustRankings(ids);
+    //resultStore.adjustRankings(payload);
+  }
+};
+// This is the function to pull an applicant off the waitlist
+const makeOffer = (payload: Object) => {
+  const offer = resultStore.results
+    .filter(
+      (item) =>
+        item.SchoolID === payload.SchoolID &&
+        item.Grade === payload.Grade &&
+        item.lotteryList === "Waiting List"
+    )
+    .sort((a, b) => a.adjustedRank - b.adjustedRank)[0];
+  if (payload.stage === "Check") {
+    // Update pending information before pushing new information
+    pendingChanges.value.push(
+      `Change ${offer.FirstName} ${offer.LastName} at ${offer.School}, grade ${offer.Grade} from '${offer.lotteryList}' to 'Offer Pending'`
+    );
+  }
+  if (payload.stage === "Submit Changes") {
+    // This updates the pinia state directly WOW!
+    offer.lotteryList = "Offer Pending";
+    // Send the Offer Pending information to update
+    resultStore.updateResult({
+      _id: offer._id,
+      update: {
+        queueStatus: "Offer Pending",
+        queueDate: new Date(),
+      },
+    });
+  }
+  //adjustRankings(offer);
+};
+// This will check for available seats and run the makeOffer function if seats available
+const checkWaitlist = (payload: Object) => {
+  // Get the capacity for the select school
+  const capacity = resultStore.schools.filter(
+    (item) => item.SchoolID === payload.SchoolID
+  )[0].Capacity[payload.Grade];
+  // Calculate the number of seats filled
+  const filled = resultStore.results.filter(
+    (item) =>
+      item.SchoolID === payload.SchoolID &&
+      item.Grade === payload.Grade &&
+      ["Offered List", "Offer Pending", "Confirmed Enrollment"].includes(
+        item.lotteryList
+      )
+  ).length;
+  if (filled <= capacity) {
+    makeOffer(payload);
+  }
+};
+const modifyProperty = (arr, targetId, newProperty) => {
+  const targetObj = arr.find((obj) => obj._id === targetId);
+  if (targetObj) {
+    targetObj.employee_name = newProperty;
+  }
+};
+const runDeclineOffer = (payload: Object) => {
+  console.log(payload.action);
+  // This will mark the pending status and continue to similate the changes
+  if (payload.stage === "Check") {
+    pendingStatus.value = true;
+    buttonText.value = "Submit Changes";
+    pendingChanges.value.push(
+      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
+    );
+  }
+  // Will run everytime to simulate the changes and/or make the changes
+  adjustRankings(payload);
+  if (payload.lotteryList === "Offered List") {
+    checkWaitlist(payload);
+  }
+  // Once changes have been similated/pending, actually make the changes
+  if (payload.stage === "Submit Changes") {
+    // Update the Pinia store for the result being changed to "Decline"
+    const declineObj = resultStore.results.find(
+      (item) => item._id === payload._id
+    );
+    declineObj.lotteryList = "Declined Offer";
+    declineObj.adjustedRank = undefined;
+    // Send the decline information to update
+    resultStore.updateResult({
+      _id: payload._id,
+      update: {
+        lotteryList: "Declined Offer",
+        adjustedRank: undefined,
+      },
+    });
+  }
+};
+const manualPositionChange = (payload: Object) => {
+  payload.newList;
+  payload.lotteryList;
+};
+const runAction = (payload: Object) => {
+  if (payload.action === "Remove from Offer/Waiting List") {
+    runDeclineOffer(payload);
+  } else {
+    console.log("runAction:", payload.action);
+  }
+};
 </script>
 <template>
-  <div>
-    <div>
-      <div class="flex">
-        <div class="relative w-full grow">
-          <input
-            placeholder="Search..."
-            v-model="search"
-            type="search"
-            name="search"
-            id="search"
-            class="p-2 mb-2 w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md text-sm"
-          />
-        </div>
-      </div>
-      <EasyDataTable
-        :search-value="search"
-        empty-message="No results found"
-        :headers="headers"
-        :items="resultStore.results"
-        :filter-options="filterOptions"
-      >
-        <template #header-School="header">
-          <div class="filter-column">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-4 h-4 inline"
-              @click.stop="showSchoolFilter = !showSchoolFilter"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
-              />
-            </svg>
-            {{ header.text }}
-            <div
-              v-if="showSchoolFilter"
-              class="absolute top-10 left-1 z-10 w-100 p-3 bg-white rounded-lg shadow"
-            >
-              <ul class="text-left">
-                <li v-for="(school, index) in schools">
-                  <input
-                    :id="index"
-                    type="checkbox"
-                    v-model="schoolFilter"
-                    :value="school"
-                    class="w-4 h-4 bg-gray-300 rounded text-sm"
-                  />
-                  <label
-                    :for="index"
-                    class="ml-2 text-sm font-medium text-gray-900"
-                    >{{ school }}</label
-                  >
-                </li>
-              </ul>
-            </div>
-          </div>
-        </template>
-        <template #header-Grade="header">
-          <div class="filter-column">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-              class="w-4 h-4 inline"
-              @click.stop="showGradeFilter = !showGradeFilter"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
-              />
-            </svg>
-            {{ header.text }}
-            <div
-              v-if="showGradeFilter"
-              class="absolute top-10 right-1 z-10 w-40 p-3 bg-white rounded-lg shadow"
-            >
-              <ul class="text-left">
-                <li v-for="(grade, index) in grades">
-                  <input
-                    :id="index"
-                    type="checkbox"
-                    v-model="gradeFilter"
-                    :value="grade"
-                    class="w-4 h-4 bg-gray-300 rounded text-sm"
-                  />
-                  <label
-                    :for="index"
-                    class="ml-2 text-sm font-medium text-gray-900"
-                    >{{ grade }}</label
-                  >
-                </li>
-              </ul>
-            </div>
-          </div>
-        </template>
-      </EasyDataTable>
+  <DeclineModal
+    :result="selectedResult"
+    :open="showDeclineModal"
+    :changes="pendingChanges"
+    :pending="pendingStatus"
+    :button="buttonText"
+    @close-modal="
+      showDeclineModal = false;
+      selectedResult = {};
+    "
+    @run-action="runAction"
+  />
+  <div class="flex">
+    <div class="relative w-full grow">
+      <input
+        placeholder="Search..."
+        v-model="search"
+        type="search"
+        name="search"
+        id="search"
+        class="p-2 mb-2 w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md text-sm"
+      />
     </div>
   </div>
+  <ClientOnly>
+    <EasyDataTable
+      :search-value="search"
+      empty-message="No results found"
+      :headers="headers"
+      :items="resultStore.results"
+      :filter-options="filterOptions"
+    >
+      <template #header-School="header">
+        <div class="filter-column">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-4 h-4 inline"
+            @click.stop="showSchoolFilter = !showSchoolFilter"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
+            />
+          </svg>
+          {{ header.text }}
+          <div
+            v-if="showSchoolFilter"
+            class="absolute top-10 left-1 z-10 w-80 p-3 bg-white rounded-lg shadow"
+          >
+            <ul class="text-left">
+              <li v-for="(school, index) in schoolNames">
+                <input
+                  :id="index"
+                  type="checkbox"
+                  v-model="schoolFilter"
+                  :value="school"
+                  class="w-4 h-4 bg-gray-300 rounded text-sm"
+                />
+                <label
+                  :for="index"
+                  class="ml-2 text-sm font-medium text-gray-900"
+                  >{{ school }}</label
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </template>
+      <template #header-Grade="header">
+        <div class="filter-column">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-4 h-4 inline"
+            @click.stop="showGradeFilter = !showGradeFilter"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
+            />
+          </svg>
+          {{ header.text }}
+          <div
+            v-if="showGradeFilter"
+            class="absolute top-10 left-1 z-10 w-40 p-3 bg-white rounded-lg shadow"
+          >
+            <ul class="text-left">
+              <li v-for="(grade, index) in grades">
+                <input
+                  :id="index"
+                  type="checkbox"
+                  v-model="gradeFilter"
+                  :value="grade"
+                  class="w-4 h-4 bg-gray-300 rounded text-sm"
+                />
+                <label
+                  :for="index"
+                  class="ml-2 text-sm font-medium text-gray-900"
+                  >{{ grade }}</label
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </template>
+      <template #header-list="header">
+        <div class="filter-column">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-4 h-4 inline"
+            @click.stop="showListFilter = !showListFilter"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
+            />
+          </svg>
+          {{ header.text }}
+          <div
+            v-if="showListFilter"
+            class="absolute top-10 left-1 z-10 w-40 p-3 bg-white rounded-lg shadow"
+          >
+            <ul class="text-left">
+              <li v-for="(list, index) in lists">
+                <input
+                  :id="index"
+                  type="checkbox"
+                  v-model="listFilter"
+                  :value="list"
+                  class="w-4 h-4 bg-gray-300 rounded text-sm"
+                />
+                <label
+                  :for="index"
+                  class="ml-2 text-sm font-medium text-gray-900"
+                  >{{ list }}</label
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </template>
+      <template #item-list="{ lotteryList, queueStatus, confirmedEnrollment }">
+        {{ lotteryList }}
+        <span v-if="queueStatus"
+          >(<em>{{ queueStatus }}</em
+          >)</span
+        >
+        <span v-if="confirmedEnrollment"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="green"
+            class="w-4 h-4 inline"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </span>
+      </template>
+      <template #item-actions="item">
+        <div>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6"
+            @click="declineItem(item)"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+            />
+          </svg>
+        </div>
+      </template>
+    </EasyDataTable>
+  </ClientOnly>
 </template>
