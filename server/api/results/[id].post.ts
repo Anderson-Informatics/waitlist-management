@@ -14,5 +14,6 @@ export default defineEventHandler(async (event) => {
     throw createError({
       message: e.message,
     });
+    return { message };
   }
 });

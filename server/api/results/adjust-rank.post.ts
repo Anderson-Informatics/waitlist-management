@@ -5,10 +5,16 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
   //const filtered = await ResultModel.find({_id: {$in: body.ids});
-  const filtered = await ResultModel.updateMany(
-    { _id: { $in: body.ids } },
-    { $inc: { adjustedRank: -1 } }
-  );
-
-  return filtered;
+  try {
+    const filtered = await ResultModel.updateMany(
+      { _id: { $in: body.ids } },
+      { $inc: { adjustedRank: -1 } }
+    );
+    return filtered;
+  } catch (e) {
+    throw createError({
+      message: e.message,
+    });
+    return { message };
+  }
 });

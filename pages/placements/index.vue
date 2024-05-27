@@ -5,6 +5,11 @@ import type { Header, Item, FilterOption } from "vue3-easy-data-table";
 const resultStore = useResultStore();
 await useAsyncData("results", () => resultStore.getAll(), {});
 await useAsyncData("schools", () => resultStore.getSchools(), {});
+const changeStore = useChangeStore();
+await useAsyncData("changes", () => changeStore.getAll(), {});
+
+// Get the user value for change logging
+const user = useSupabaseUser();
 
 //Search for record in table
 const search = ref("");
@@ -62,7 +67,12 @@ const schoolNames = ref([
   "Palmer Park Preparatory Academy",
   "The School at Marygrove",
 ]);
-const lists = ref(["Offered List", "Waiting List", "Declined Offer"]);
+const lists = ref([
+  "Offered List",
+  "Waiting List",
+  "Secondary Waiting List",
+  "Declined Offer",
+]);
 
 // This is the toggle for the dropdown filters
 const showGradeFilter = ref(false);
@@ -88,6 +98,7 @@ const showDeclineModal = ref(false);
 const pendingChanges = ref([]);
 const pendingStatus = ref(false);
 const buttonText = ref("Check");
+const pendingIds = ref([]);
 
 // This will reset the edit modal component
 const declineItem = (val: Item) => {
@@ -97,14 +108,13 @@ const declineItem = (val: Item) => {
   pendingChanges.value = [];
   pendingStatus.value = false;
   buttonText.value = "Check";
+  pendingIds.value = [];
 };
 const checkLowerOffers = (payload: Object) => {
-  yarn;
   let offers = resultStore.results.filter(
     (item) =>
       item.submissionId === payload.submissionId && item._id != payload._id
   );
-  console.log("Lower offers:", offers);
 };
 const adjustRankings = (payload: Object) => {
   // filter to the same school, grade, and lotteryList and lower ranked results
@@ -140,18 +150,21 @@ const makeOffer = (payload: Object) => {
       (item) =>
         item.SchoolID === payload.SchoolID &&
         item.Grade === payload.Grade &&
-        item.lotteryList === "Waiting List"
+        item.lotteryList === "Waiting List" &&
+        item.queueStatus !== "Offer Pending"
     )
     .sort((a, b) => a.adjustedRank - b.adjustedRank)[0];
   if (payload.stage === "Check") {
     // Update pending information before pushing new information
     pendingChanges.value.push(
-      `Change ${offer.FirstName} ${offer.LastName} at ${offer.School}, grade ${offer.Grade} from '${offer.lotteryList}' to 'Offer Pending'`
+      `Add ${offer.FirstName} ${offer.LastName} at ${offer.School}, grade ${offer.Grade} to 'Offer Pending' list`
     );
+    pendingIds.value.push(offer._id);
   }
   if (payload.stage === "Submit Changes") {
     // This updates the pinia state directly WOW!
-    offer.lotteryList = "Offer Pending";
+    offer.queueStatus = "Offer Pending";
+    offer.queueDate = new Date();
     // Send the Offer Pending information to update
     resultStore.updateResult({
       _id: offer._id,
@@ -197,6 +210,7 @@ const runDeclineOffer = (payload: Object) => {
     pendingChanges.value.push(
       `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
     );
+    pendingIds.value.push(payload._id);
   }
   // Will run everytime to simulate the changes and/or make the changes
   adjustRankings(payload);
@@ -205,18 +219,28 @@ const runDeclineOffer = (payload: Object) => {
   }
   // Once changes have been similated/pending, actually make the changes
   if (payload.stage === "Submit Changes") {
+    // add the pending changes to the history log
+    const changeObj = {
+      changes: pendingChanges.value,
+      ids: pendingIds.value,
+      userId: user.value.id,
+      userEmail: user.value.email,
+      notes: payload.notes,
+      date: new Date(),
+    };
+    changeStore.addChange(changeObj);
     // Update the Pinia store for the result being changed to "Decline"
     const declineObj = resultStore.results.find(
       (item) => item._id === payload._id
     );
     declineObj.lotteryList = "Declined Offer";
-    declineObj.adjustedRank = undefined;
+    declineObj.adjustedRank = null;
     // Send the decline information to update
     resultStore.updateResult({
       _id: payload._id,
       update: {
         lotteryList: "Declined Offer",
-        adjustedRank: undefined,
+        adjustedRank: null,
       },
     });
   }
@@ -229,6 +253,7 @@ const runAction = (payload: Object) => {
   if (payload.action === "Remove from Offer/Waiting List") {
     runDeclineOffer(payload);
   } else {
+    console.log(user.value.id, user.value.email);
     console.log("runAction:", payload.action);
   }
 };
