@@ -1,10 +1,69 @@
 <script setup lang="ts">
 import type { Header, Item, FilterOption } from "vue3-easy-data-table";
+import { useToast } from "primevue/usetoast";
 
 // Get the results and schools data from the Pinia store
 const resultStore = useResultStore();
 await useAsyncData("results", () => resultStore.getAll(), {});
+await useAsyncData("pendingOffers", () => resultStore.getPending(), {});
 await useAsyncData("schools", () => resultStore.getSchools(), {});
+const changeStore = useChangeStore();
+await useAsyncData("changes", () => changeStore.getAll(), {});
+
+// Testing the use of toast
+const toast = useToast();
+
+const showSuccess = (message) => {
+  toast.add({
+    severity: "success",
+    summary: "Changes Successfully Made",
+    detail: message,
+    life: 3000,
+  });
+};
+const showInfo = () => {
+  toast.add({
+    severity: "info",
+    summary: "Info Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+const showWarn = () => {
+  toast.add({
+    severity: "warn",
+    summary: "Warn Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+const showError = () => {
+  toast.add({
+    severity: "error",
+    summary: "Error Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+const showSecondary = () => {
+  toast.add({
+    severity: "secondary",
+    summary: "Secondary Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+const showContrast = () => {
+  toast.add({
+    severity: "contrast",
+    summary: "Contrast Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+
+// Get the user value for change logging
+const user = useSupabaseUser();
 
 //Search for record in table
 const search = ref("");
@@ -62,7 +121,12 @@ const schoolNames = ref([
   "Palmer Park Preparatory Academy",
   "The School at Marygrove",
 ]);
-const lists = ref(["Offered List", "Waiting List", "Declined Offer"]);
+const lists = ref([
+  "Offered List",
+  "Waiting List",
+  "Secondary Waiting List",
+  "Declined Offer",
+]);
 
 // This is the toggle for the dropdown filters
 const showGradeFilter = ref(false);
@@ -72,9 +136,10 @@ const showListFilter = ref(false);
 // headers for the table
 const headers: Header[] = [
   { text: "#", value: "rank", sortable: true },
+  { text: "Date Added", value: "queueDate", sortable: true },
   { text: "School", value: "School" },
   { text: "Grade", value: "Grade", width: 100 },
-  { text: "List", value: "lotteryList", width: 150 },
+  { text: "List", value: "list", width: 150 },
   { text: "Rank", value: "adjustedRank", sortable: true },
   { text: "First", value: "FirstName", sortable: true },
   { text: "Last", value: "LastName", sortable: true },
@@ -84,30 +149,28 @@ const headers: Header[] = [
 
 // Helpers for the edit modal component
 const selectedResult = ref({});
-const showDeclineModal = ref(false);
+const showModal = ref(false);
 const pendingChanges = ref([]);
 const pendingStatus = ref(false);
 const buttonText = ref("Check");
+const pendingIds = ref([]);
 
 // This will reset the edit modal component
-const declineItem = (val: Item) => {
+const loadItem = (val: Item) => {
   selectedResult.value = val;
-  showDeclineModal.value = true;
+  showModal.value = true;
   // These are the empty starting defaults for the form
   pendingChanges.value = [];
   pendingStatus.value = false;
   buttonText.value = "Check";
+  pendingIds.value = [];
 };
-
 const checkLowerOffers = (payload: Object) => {
-  yarn;
   let offers = resultStore.results.filter(
     (item) =>
       item.submissionId === payload.submissionId && item._id != payload._id
   );
-  console.log("Lower offers:", offers);
 };
-
 const adjustRankings = (payload: Object) => {
   // filter to the same school, grade, and lotteryList and lower ranked results
   let filtered = resultStore.results.filter(
@@ -115,7 +178,7 @@ const adjustRankings = (payload: Object) => {
       item.SchoolID === payload.SchoolID &&
       item.Grade === payload.Grade &&
       item.lotteryList === payload.lotteryList &&
-      item.adjustedRank > payload.currentRank
+      item.adjustedRank > payload.adjustedRank
   );
   // Create an Array of ids from the lower ranked results
   let ids = filtered.map((item) => item._id);
@@ -133,9 +196,11 @@ const adjustRankings = (payload: Object) => {
     // Send the ids to update the list rankings
     resultStore.adjustRankings(ids);
     //resultStore.adjustRankings(payload);
+    showSuccess(
+      `Moved ${ids.length} applicants up the ${payload.lotteryList} (${payload.stage})`
+    );
   }
 };
-
 // This is the function to pull an applicant off the waitlist
 const makeOffer = (payload: Object) => {
   const offer = resultStore.results
@@ -143,29 +208,35 @@ const makeOffer = (payload: Object) => {
       (item) =>
         item.SchoolID === payload.SchoolID &&
         item.Grade === payload.Grade &&
-        item.lotteryList === "Waiting List"
+        item.lotteryList === "Waiting List" &&
+        item.queueStatus !== "Offer Pending"
     )
     .sort((a, b) => a.adjustedRank - b.adjustedRank)[0];
   if (payload.stage === "Check") {
     // Update pending information before pushing new information
     pendingChanges.value.push(
-      `Change ${offer.FirstName} ${offer.LastName} at ${offer.School}, grade ${offer.Grade} from '${offer.lotteryList}' to 'Offer Pending'`
+      `Add ${offer.FirstName} ${offer.LastName} at ${offer.School}, grade ${offer.Grade} to 'Offer Pending' list`
     );
+    pendingIds.value.push(offer._id);
   }
   if (payload.stage === "Submit Changes") {
     // This updates the pinia state directly WOW!
-    offer.lotteryList = "Offer Pending";
+    offer.queueStatus = "Offer Pending";
+    offer.queueDate = new Date();
     // Send the Offer Pending information to update
     resultStore.updateResult({
       _id: offer._id,
       update: {
-        lotteryList: "Offer Pending",
+        queueStatus: "Offer Pending",
+        queueDate: new Date(),
       },
     });
+    showSuccess(
+      `Added ${offer.FirstName} ${offer.LastName} at ${offer.School}, grade ${offer.Grade} to 'Offer Pending' list`
+    );
   }
   //adjustRankings(offer);
 };
-
 // This will check for available seats and run the makeOffer function if seats available
 const checkWaitlist = (payload: Object) => {
   // Get the capacity for the select school
@@ -185,74 +256,180 @@ const checkWaitlist = (payload: Object) => {
     makeOffer(payload);
   }
 };
-
 const modifyProperty = (arr, targetId, newProperty) => {
   const targetObj = arr.find((obj) => obj._id === targetId);
   if (targetObj) {
     targetObj.employee_name = newProperty;
   }
 };
-
-const runDeclineOffer = (payload: Object) => {
-  console.log(payload.action);
+const runAcceptOffer = (payload: Object) => {
   // This will mark the pending status and continue to similate the changes
   if (payload.stage === "Check") {
+    console.log("Running accept offer check function");
     pendingStatus.value = true;
     buttonText.value = "Submit Changes";
     pendingChanges.value.push(
-      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
+      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Offered List' (${payload.stage})`
     );
+    pendingIds.value.push(payload._id);
   }
   // Will run everytime to simulate the changes and/or make the changes
   adjustRankings(payload);
-  if (payload.lotteryList === "Offered List") {
-    checkWaitlist(payload);
-  }
+  // Probably won't need to run the below option
+  //checkWaitlist(payload);
+
+  // Check lower results from applicant
+  const lowerResults = resultStore.results.filter(
+    (item) =>
+      item.submissionId === payload.submissionId &&
+      item.ChoiceRank > payload.ChoiceRank
+  );
+  console.log(lowerResults);
+  const offerList = resultStore.results.filter(
+    (item) =>
+      item.SchoolID === payload.SchoolID &&
+      item.Grade === payload.Grade &&
+      item.lotteryList === "Offered List"
+  );
+  const maxRank = Math.max(...offerList.map((x) => x.adjustedRank));
+  console.log(maxRank);
+  // Run the decline offer for the other lower ranked Results
+  lowerResults.forEach((item) => {
+    let temp = {
+      ...item,
+      stage: payload.stage,
+      action: "Decline lower ranked choices",
+    };
+    console.log(temp);
+    runDeclineOffer(temp);
+  });
+
   // Once changes have been similated/pending, actually make the changes
   if (payload.stage === "Submit Changes") {
+    console.log("Running accept offer submit function");
+    // add the pending changes to the history log
+    const changeObj = {
+      changes: pendingChanges.value,
+      ids: pendingIds.value,
+      userId: user.value.id,
+      userEmail: user.value.email,
+      notes: payload.notes,
+      date: new Date(),
+    };
+    changeStore.addChange(changeObj);
     // Update the Pinia store for the result being changed to "Decline"
-    const declineObj = resultStore.results.find(
+    const acceptObj = resultStore.results.find(
       (item) => item._id === payload._id
     );
-    declineObj.lotteryList = "Declined Offer";
-    declineObj.adjustedRank = undefined;
+    acceptObj.lotteryList = "Offered List";
+    acceptObj.adjustedRank = maxRank + 1;
+    acceptObj.queueStatus = null;
     // Send the decline information to update
     resultStore.updateResult({
       _id: payload._id,
       update: {
-        lotteryList: "Declined Offer",
-        adjustedRank: undefined,
+        lotteryList: "Offered List",
+        adjustedRank: maxRank + 1,
+        queueStatus: null,
       },
     });
+    showSuccess(
+      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Offered List' (${payload.stage})`
+    );
+
+    setTimeout(() => {
+      showModal.value = false;
+      selectedResult.value = {};
+    }, 1000);
   }
 };
+const runDeclineOffer = (payload: Object) => {
+  if (payload.lotteryList !== "Declined Offer") {
+    console.log(payload.action);
+    // This will mark the pending status and continue to similate the changes
+    if (payload.stage === "Check") {
+      pendingStatus.value = true;
+      buttonText.value = "Submit Changes";
+      pendingChanges.value.push(
+        `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
+      );
+      pendingIds.value.push(payload._id);
+    }
+    // Will run everytime to simulate the changes and/or make the changes
+    adjustRankings(payload);
+    if (payload.lotteryList === "Offered List") {
+      checkWaitlist(payload);
+    }
+    // Once changes have been similated/pending, actually make the changes
+    if (payload.stage === "Submit Changes") {
+      // add the pending changes to the history log
+      const changeObj = {
+        changes: pendingChanges.value,
+        ids: pendingIds.value,
+        userId: user.value.id,
+        userEmail: user.value.email,
+        notes: payload.notes,
+        date: new Date(),
+      };
+      changeStore.addChange(changeObj);
+      // Update the Pinia store for the result being changed to "Decline"
+      const declineObj = resultStore.results.find(
+        (item) => item._id === payload._id
+      );
+      declineObj.lotteryList = "Declined Offer";
+      declineObj.adjustedRank = null;
+      declineObj.queueStatus = null;
+      // Send the decline information to update
+      resultStore.updateResult({
+        _id: payload._id,
+        update: {
+          lotteryList: "Declined Offer",
+          adjustedRank: null,
+          queueStatus: null,
+        },
+      });
+      showSuccess(
+        `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
+      );
 
+      setTimeout(() => {
+        showModal.value = false;
+        selectedResult.value = {};
+      }, 1000);
+    }
+  }
+};
 const manualPositionChange = (payload: Object) => {
   payload.newList;
   payload.lotteryList;
 };
-
 const runAction = (payload: Object) => {
-  if (payload.action === "Remove from Offer/Waiting List") {
+  if (payload.action === "Accept Offer") {
+    runAcceptOffer(payload);
+  } else if (payload.action === "Decline Offer") {
     runDeclineOffer(payload);
   } else {
+    console.log(user.value.id, user.value.email);
     console.log("runAction:", payload.action);
   }
 };
 </script>
 <template>
-  <DeclineModal
+  <OfferModal
     :result="selectedResult"
-    :open="showDeclineModal"
+    :open="showModal"
     :changes="pendingChanges"
     :pending="pendingStatus"
     :button="buttonText"
     @close-modal="
-      showDeclineModal = false;
+      showModal = false;
       selectedResult = {};
     "
     @run-action="runAction"
   />
+  <div class="card flex justify-center">
+    <Toast />
+  </div>
   <div class="flex">
     <div class="relative w-full grow">
       <input
@@ -270,9 +447,31 @@ const runAction = (payload: Object) => {
       :search-value="search"
       empty-message="No results found"
       :headers="headers"
-      :items="resultStore.results"
+      :items="resultStore.pendingOffers"
       :filter-options="filterOptions"
     >
+      <template #expand="item">
+        <div style="padding: 15px" class="columns-2 flex">
+          <div class="block">
+            <h2>Placement Info</h2>
+            <div v-for="result in item.results">
+              Choice {{ result.ChoiceRank }}: {{ result.School }} #{{
+                result.adjustedRank
+              }}
+              on {{ result.lotteryList }}
+            </div>
+          </div>
+          <div class="block ml-10">
+            <h2>Parent Information</h2>
+            {{ item.contact.ParentFirst }} {{ item.contact.ParentLast }}<br />
+            {{ item.contact.ParentPhone }}<br />
+            {{ item.contact.ParentEmail }}
+          </div>
+        </div>
+      </template>
+      <template #item-queueDate="{ queueDate }">
+        {{ new Date(queueDate).toLocaleDateString() }}</template
+      >
       <template #header-School="header">
         <div class="filter-column">
           <svg
@@ -355,7 +554,7 @@ const runAction = (payload: Object) => {
           </div>
         </div>
       </template>
-      <template #header-lotteryList="header">
+      <template #header-list="header">
         <div class="filter-column">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -396,6 +595,27 @@ const runAction = (payload: Object) => {
           </div>
         </div>
       </template>
+      <template #item-list="{ lotteryList, queueStatus, confirmedEnrollment }">
+        {{ lotteryList }}
+        <span v-if="queueStatus"
+          >(<em>{{ queueStatus }}</em
+          >)</span
+        >
+        <span v-if="confirmedEnrollment"
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="green"
+            class="w-4 h-4 inline"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </span>
+      </template>
       <template #item-actions="item">
         <div>
           <svg
@@ -405,7 +625,7 @@ const runAction = (payload: Object) => {
             stroke-width="1.5"
             stroke="currentColor"
             class="w-6 h-6"
-            @click="declineItem(item)"
+            @click="loadItem(item)"
           >
             <path
               stroke-linecap="round"

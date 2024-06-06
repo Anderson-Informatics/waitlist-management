@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Header, Item, FilterOption } from "vue3-easy-data-table";
+import { useToast } from "primevue/usetoast";
 
 // Get the results and schools data from the Pinia store
 const resultStore = useResultStore();
@@ -7,6 +8,63 @@ await useAsyncData("results", () => resultStore.getAll(), {});
 await useAsyncData("schools", () => resultStore.getSchools(), {});
 const changeStore = useChangeStore();
 await useAsyncData("changes", () => changeStore.getAll(), {});
+
+// Testing the use of toast
+const toast = useToast();
+
+const showSuccess = (message) => {
+  toast.add({
+    severity: "success",
+    summary: "Changes Successfully Made",
+    detail: message,
+    life: 3000,
+  });
+};
+
+const showInfo = () => {
+  toast.add({
+    severity: "info",
+    summary: "Info Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+
+const showWarn = () => {
+  toast.add({
+    severity: "warn",
+    summary: "Warn Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+
+const showError = () => {
+  toast.add({
+    severity: "error",
+    summary: "Error Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+
+const showSecondary = () => {
+  toast.add({
+    severity: "secondary",
+    summary: "Secondary Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
+
+const showContrast = () => {
+  toast.add({
+    severity: "contrast",
+    summary: "Contrast Message",
+    detail: "Message Content",
+    life: 3000,
+  });
+};
 
 // Get the user value for change logging
 const user = useSupabaseUser();
@@ -94,16 +152,16 @@ const headers: Header[] = [
 
 // Helpers for the edit modal component
 const selectedResult = ref({});
-const showDeclineModal = ref(false);
+const showModal = ref(false);
 const pendingChanges = ref([]);
 const pendingStatus = ref(false);
 const buttonText = ref("Check");
 const pendingIds = ref([]);
 
 // This will reset the edit modal component
-const declineItem = (val: Item) => {
+const loadItem = (val: Item) => {
   selectedResult.value = val;
-  showDeclineModal.value = true;
+  showModal.value = true;
   // These are the empty starting defaults for the form
   pendingChanges.value = [];
   pendingStatus.value = false;
@@ -123,7 +181,7 @@ const adjustRankings = (payload: Object) => {
       item.SchoolID === payload.SchoolID &&
       item.Grade === payload.Grade &&
       item.lotteryList === payload.lotteryList &&
-      item.adjustedRank > payload.currentRank
+      item.adjustedRank > payload.adjustedRank
   );
   // Create an Array of ids from the lower ranked results
   let ids = filtered.map((item) => item._id);
@@ -141,6 +199,9 @@ const adjustRankings = (payload: Object) => {
     // Send the ids to update the list rankings
     resultStore.adjustRankings(ids);
     //resultStore.adjustRankings(payload);
+    showSuccess(
+      `Moved ${ids.length} applicants up the ${payload.lotteryList} (${payload.stage})`
+    );
   }
 };
 // This is the function to pull an applicant off the waitlist
@@ -173,6 +234,9 @@ const makeOffer = (payload: Object) => {
         queueDate: new Date(),
       },
     });
+    showSuccess(
+      `Added ${offer.FirstName} ${offer.LastName} at ${offer.School}, grade ${offer.Grade} to 'Offer Pending' list`
+    );
   }
   //adjustRankings(offer);
 };
@@ -243,6 +307,14 @@ const runDeclineOffer = (payload: Object) => {
         adjustedRank: null,
       },
     });
+    showSuccess(
+      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
+    );
+
+    setTimeout(() => {
+      showModal.value = false;
+      selectedResult.value = {};
+    }, 1000);
   }
 };
 const manualPositionChange = (payload: Object) => {
@@ -259,18 +331,21 @@ const runAction = (payload: Object) => {
 };
 </script>
 <template>
-  <DeclineModal
+  <ActionModal
     :result="selectedResult"
-    :open="showDeclineModal"
+    :open="showModal"
     :changes="pendingChanges"
     :pending="pendingStatus"
     :button="buttonText"
     @close-modal="
-      showDeclineModal = false;
+      showModal = false;
       selectedResult = {};
     "
     @run-action="runAction"
   />
+  <div class="card flex justify-center">
+    <Toast />
+  </div>
   <div class="flex">
     <div class="relative w-full grow">
       <input
@@ -444,7 +519,7 @@ const runAction = (payload: Object) => {
             stroke-width="1.5"
             stroke="currentColor"
             class="w-6 h-6"
-            @click="declineItem(item)"
+            @click="loadItem(item)"
           >
             <path
               stroke-linecap="round"

@@ -118,6 +118,9 @@ const headers: Header[] = [
               </div>
             </div>
           </template>
+          <template #item-submissionDate="{ submissionDate }">
+            {{ new Date(submissionDate).toLocaleDateString() }}
+          </template>
         </EasyDataTable>
       </ClientOnly>
     </div>

@@ -172,8 +172,13 @@ const runAction = () => {
     Grade: props.result.Grade,
     lotteryList: props.result.lotteryList,
     newLotteryList: "Declined Offer",
-    currentRank: props.result.adjustedRank,
+    adjustedRank: props.result.adjustedRank,
     notes: notes.value,
   });
+  // This will hopefully reset the form after submission
+  if (props.button === "Submit Changes") {
+    action.value = "Please select an action";
+    notes.value = "";
+  }
 };
 </script>

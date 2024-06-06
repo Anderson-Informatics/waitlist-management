@@ -5,6 +5,7 @@ export const useResultStore = defineStore("result-store", {
     // list all results
     results: [] as Result[],
     schools: [] as School[],
+    pendingOffers: [] as Result[],
   }),
   getters: {
     schoolCapacity: (state) => state.schools,
@@ -15,6 +16,15 @@ export const useResultStore = defineStore("result-store", {
       try {
         let data = await $fetch("/api/results");
         this.results = data;
+        return data;
+      } catch (e) {
+        console.log(e.message);
+      }
+    },
+    async getPending() {
+      try {
+        let data = await $fetch("/api/results/pending");
+        this.pendingOffers = data;
         return data;
       } catch (e) {
         console.log(e.message);
