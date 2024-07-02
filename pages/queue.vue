@@ -318,7 +318,7 @@ const runAcceptOffer = (payload: Object) => {
     };
     changeStore.addChange(changeObj);
     // Update the Pinia store for the result being changed to "Decline"
-    const acceptObj = resultStore.results.find(
+    const acceptObj = resultStore.results.filter(
       (item) => item._id === payload._id
     );
     acceptObj.lotteryList = "Offered List";

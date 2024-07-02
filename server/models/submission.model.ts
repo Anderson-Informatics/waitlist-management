@@ -6,7 +6,7 @@ const schema: mongoose.Schema = new mongoose.Schema({
     required: true,
   },
   submissionId: {
-    type: Number,
+    type: String,
     required: true,
   },
   submissionStatus: {

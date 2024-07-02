@@ -174,8 +174,9 @@ const runAction = () => {
     notes: notes.value,
   });
   if (props.button === "Submit Changes") {
-    action = "Please select an action";
-    notes = "";
+    action.value = "Please select an option";
+    console.log(`This should happen when I submit changes ${notes}`);
+    notes.value = "";
   }
 };
 </script>
