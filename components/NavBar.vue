@@ -45,11 +45,13 @@ const userNavigation = [
       <div class="flex h-16 items-center justify-between">
         <div class="flex items-center">
           <div class="flex-shrink-0">
-            <img
-              class="h-8"
-              src="https://www.detroitk12.org/cms/lib/MI50000060/Centricity/Template/GlobalAssets/images///logos/default-logo.png"
-              alt="Detroit Public Schools Community District"
-            />
+            <NuxtLink href="/">
+              <img
+                class="h-8"
+                src="https://www.detroitk12.org/cms/lib/MI50000060/Centricity/Template/GlobalAssets/images///logos/default-logo.png"
+                alt="Detroit Public Schools Community District"
+              />
+            </NuxtLink>
           </div>
           <div class="hidden md:block">
             <div class="ml-10 flex items-baseline space-x-4">

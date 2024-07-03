@@ -18,7 +18,7 @@ const showSuccess = (message) => {
     severity: "success",
     summary: "Changes Successfully Made",
     detail: message,
-    life: 3000,
+    life: 5000,
   });
 };
 const showInfo = () => {
@@ -42,7 +42,7 @@ const showError = () => {
     severity: "error",
     summary: "Error Message",
     detail: "Message Content",
-    life: 3000,
+    life: 6000,
   });
 };
 const showSecondary = () => {
@@ -185,7 +185,7 @@ const adjustRankings = (payload: Object) => {
   if (payload.stage === "Check") {
     // Add info to pending changes array to display as interim step
     pendingChanges.value.push(
-      `Move ${ids.length} applicants up the ${payload.lotteryList} (${payload.stage})`
+      `Move ${ids.length} applicants up the ${payload.lotteryList}`
     );
   }
   if (payload.stage === "Submit Changes") {
@@ -196,9 +196,7 @@ const adjustRankings = (payload: Object) => {
     // Send the ids to update the list rankings
     resultStore.adjustRankings(ids);
     //resultStore.adjustRankings(payload);
-    showSuccess(
-      `Moved ${ids.length} applicants up the ${payload.lotteryList} (${payload.stage})`
-    );
+    showSuccess(`Moved ${ids.length} applicants up the ${payload.lotteryList}`);
   }
 };
 // This is the function to pull an applicant off the waitlist
@@ -269,7 +267,7 @@ const runAcceptOffer = (payload: Object) => {
     pendingStatus.value = true;
     buttonText.value = "Submit Changes";
     pendingChanges.value.push(
-      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Offered List' (${payload.stage})`
+      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Offered List'`
     );
     pendingIds.value.push(payload._id);
   }
@@ -303,7 +301,6 @@ const runAcceptOffer = (payload: Object) => {
     console.log(temp);
     runDeclineOffer(temp);
   });
-
   // Once changes have been similated/pending, actually make the changes
   if (payload.stage === "Submit Changes") {
     console.log("Running accept offer submit function");
@@ -317,13 +314,20 @@ const runAcceptOffer = (payload: Object) => {
       date: new Date(),
     };
     changeStore.addChange(changeObj);
-    // Update the Pinia store for the result being changed to "Decline"
-    const acceptObj = resultStore.results.filter(
+    // Update the Pinia store for the result being changed to "Offered List"
+    const acceptObj = resultStore.results.find(
       (item) => item._id === payload._id
     );
+    const pendingOffer = resultStore.pendingOffers.find(
+      (item) => item._id === payload._id
+    );
+    console.log(acceptObj);
     acceptObj.lotteryList = "Offered List";
     acceptObj.adjustedRank = maxRank + 1;
     acceptObj.queueStatus = null;
+    pendingOffer.lotteryList = "Offered List";
+    pendingOffer.adjustedRank = maxRank + 1;
+    pendingOffer.queueStatus = null;
     // Send the decline information to update
     resultStore.updateResult({
       _id: payload._id,
@@ -334,7 +338,7 @@ const runAcceptOffer = (payload: Object) => {
       },
     });
     showSuccess(
-      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Offered List' (${payload.stage})`
+      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Offered List'`
     );
 
     setTimeout(() => {
@@ -351,7 +355,7 @@ const runDeclineOffer = (payload: Object) => {
       pendingStatus.value = true;
       buttonText.value = "Submit Changes";
       pendingChanges.value.push(
-        `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
+        `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
       );
       pendingIds.value.push(payload._id);
     }

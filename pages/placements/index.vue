@@ -294,7 +294,7 @@ const runDeclineOffer = (payload: Object) => {
     };
     changeStore.addChange(changeObj);
     // Update the Pinia store for the result being changed to "Decline"
-    const declineObj = resultStore.results.filter(
+    const declineObj = resultStore.results.find(
       (item) => item._id === payload._id
     );
     declineObj.lotteryList = "Declined Offer";
@@ -308,7 +308,7 @@ const runDeclineOffer = (payload: Object) => {
       },
     });
     showSuccess(
-      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
+      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
     );
 
     setTimeout(() => {
