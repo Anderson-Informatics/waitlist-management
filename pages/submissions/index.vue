@@ -39,7 +39,6 @@ const showGradeFilter = ref(false);
 
 // headers for the table
 const headers: Header[] = [
-  { text: "ID", value: "submissionId", sortable: true, width: 100 },
   { text: "Name", value: "FullName", sortable: true },
   { text: "First", value: "FirstName", sortable: true },
   { text: "Last", value: "LastName", sortable: true },

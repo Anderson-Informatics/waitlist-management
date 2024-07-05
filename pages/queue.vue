@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import type { Header, Item, FilterOption } from "vue3-easy-data-table";
+import type {
+  Header,
+  Item,
+  FilterOption,
+  SortType,
+} from "vue3-easy-data-table";
 import { useToast } from "primevue/usetoast";
 
 // Get the results and schools data from the Pinia store
@@ -135,7 +140,6 @@ const showListFilter = ref(false);
 
 // headers for the table
 const headers: Header[] = [
-  { text: "#", value: "rank", sortable: true },
   { text: "Date Added", value: "queueDate", sortable: true },
   { text: "School", value: "School" },
   { text: "Grade", value: "Grade", width: 100 },
@@ -146,6 +150,9 @@ const headers: Header[] = [
   { text: "Choice", value: "ChoiceRank", sortable: true },
   { text: "Actions", value: "actions" },
 ];
+
+const sortBy = "queueDate";
+const sortType: SortType = "asc";
 
 // Helpers for the edit modal component
 const selectedResult = ref({});
@@ -434,6 +441,9 @@ const runAction = (payload: Object) => {
   <div class="card flex justify-center">
     <Toast />
   </div>
+  <div class="w-full mb-4">
+    <h2>Make calls to parents to make offers off of waitlist.</h2>
+  </div>
   <div class="flex">
     <div class="relative w-full grow">
       <input
@@ -453,6 +463,8 @@ const runAction = (payload: Object) => {
       :headers="headers"
       :items="resultStore.pendingOffers"
       :filter-options="filterOptions"
+      :sort-by="sortBy"
+      :sort-type="sortType"
     >
       <template #expand="item">
         <div style="padding: 15px" class="columns-2 flex">

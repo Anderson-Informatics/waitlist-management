@@ -17,10 +17,9 @@ const showSuccess = (message) => {
     severity: "success",
     summary: "Changes Successfully Made",
     detail: message,
-    life: 3000,
+    life: 6000,
   });
 };
-
 const showInfo = () => {
   toast.add({
     severity: "info",
@@ -29,7 +28,6 @@ const showInfo = () => {
     life: 3000,
   });
 };
-
 const showWarn = () => {
   toast.add({
     severity: "warn",
@@ -38,7 +36,6 @@ const showWarn = () => {
     life: 3000,
   });
 };
-
 const showError = () => {
   toast.add({
     severity: "error",
@@ -47,7 +44,6 @@ const showError = () => {
     life: 3000,
   });
 };
-
 const showSecondary = () => {
   toast.add({
     severity: "secondary",
@@ -56,7 +52,6 @@ const showSecondary = () => {
     life: 3000,
   });
 };
-
 const showContrast = () => {
   toast.add({
     severity: "contrast",
@@ -143,6 +138,7 @@ const headers: Header[] = [
   { text: "School", value: "School" },
   { text: "Grade", value: "Grade", width: 100 },
   { text: "List", value: "list", width: 150 },
+  { text: "Enrolled", value: "confirmedEnrollment", sortable: true },
   { text: "Rank", value: "adjustedRank", sortable: true },
   { text: "First", value: "FirstName", sortable: true },
   { text: "Last", value: "LastName", sortable: true },
@@ -346,6 +342,9 @@ const runAction = (payload: Object) => {
   <div class="card flex justify-center">
     <Toast />
   </div>
+  <div class="w-full mb-4">
+    <h2>View and modify placement decisions.</h2>
+  </div>
   <div class="flex">
     <div class="relative w-full grow">
       <input
@@ -376,6 +375,7 @@ const runAction = (payload: Object) => {
             stroke="currentColor"
             class="w-4 h-4 inline"
             @click.stop="showSchoolFilter = !showSchoolFilter"
+            v-click-outside="() => (showSchoolFilter = false)"
           >
             <path
               stroke-linecap="round"
@@ -417,6 +417,7 @@ const runAction = (payload: Object) => {
             stroke="currentColor"
             class="w-4 h-4 inline"
             @click.stop="showGradeFilter = !showGradeFilter"
+            v-click-outside="() => (showGradeFilter = false)"
           >
             <path
               stroke-linecap="round"
@@ -458,6 +459,7 @@ const runAction = (payload: Object) => {
             stroke="currentColor"
             class="w-4 h-4 inline"
             @click.stop="showListFilter = !showListFilter"
+            v-click-outside="() => (showListFilter = false)"
           >
             <path
               stroke-linecap="round"
@@ -489,12 +491,21 @@ const runAction = (payload: Object) => {
           </div>
         </div>
       </template>
-      <template #item-list="{ lotteryList, queueStatus, confirmedEnrollment }">
+      <template #item-list="{ lotteryList, queueStatus }">
         {{ lotteryList }}
         <span v-if="queueStatus"
           >(<em>{{ queueStatus }}</em
           >)</span
         >
+      </template>
+      <template #item-confirmedEnrollment="{ confirmedEnrollment }">
+        <!--
+        {{ lotteryList }}
+        <span v-if="queueStatus"
+          >(<em>{{ queueStatus }}</em
+          >)</span
+        >
+        -->
         <span v-if="confirmedEnrollment"
           ><svg
             xmlns="http://www.w3.org/2000/svg"
