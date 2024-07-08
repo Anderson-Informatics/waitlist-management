@@ -317,9 +317,19 @@ const manualPositionChange = (payload: Object) => {
   payload.newList;
   payload.lotteryList;
 };
+const addLabel = (payload: Object) => {
+  resultStore.addLabel(payload);
+};
+const deleteLabel = (payload: Object) => {
+  resultStore.deleteLabel(payload);
+};
 const runAction = (payload: Object) => {
   if (payload.action === "Remove from Offer/Waiting List") {
     runDeclineOffer(payload);
+  } else if (payload.action === "Add Label Test") {
+    addLabel(payload);
+  } else if (payload.action === "Delete Label Test") {
+    deleteLabel(payload);
   } else {
     console.log(user.value.id, user.value.email);
     console.log("runAction:", payload.action);
@@ -344,6 +354,7 @@ const runAction = (payload: Object) => {
   </div>
   <div class="w-full mb-4">
     <h2>View and modify placement decisions.</h2>
+    <button @click.prevent="">Test Label Add</button>
   </div>
   <div class="flex">
     <div class="relative w-full grow">

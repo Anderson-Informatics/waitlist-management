@@ -23,6 +23,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     MONGO_URI: process.env.MONGO_URI,
     API_URL: process.env.API_URL,
+    SUBMITTABLE_API_KEY: process.env.SUBMITTABLE_API_KEY,
   },
   primevue: {
     options: {
