@@ -236,6 +236,56 @@ const makeOffer = (payload: Object) => {
   }
   //adjustRankings(offer);
 };
+const addToWaitingList = (payload: Object) => {
+  if (payload.lotteryList === "Declined Offer") {
+    // This will mark the pending status and continue to similate the changes
+    if (payload.stage === "Check") {
+      pendingStatus.value = true;
+      buttonText.value = "Submit Changes";
+      pendingChanges.value.push(
+        `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Waiting List'`
+      );
+      pendingIds.value.push(payload._id);
+    }
+    // Once changes have been similated/pending, actually make the changes
+    if (payload.stage === "Submit Changes") {
+      const maxRank = getMaxRank(payload, resultStore.results, "Waiting List");
+      console.log(`Waiting list max rank: ${maxRank}`);
+      // add the pending changes to the history log
+      const changeObj = {
+        changes: pendingChanges.value,
+        ids: pendingIds.value,
+        userId: user.value.id,
+        userEmail: user.value.email,
+        notes: payload.notes,
+        date: new Date(),
+      };
+      changeStore.addChange(changeObj);
+      // Update the Pinia store for the result being changed to "Decline"
+      const waitlistObj = resultStore.results.find(
+        (item) => item._id === payload._id
+      );
+      waitlistObj.lotteryList = "Waiting List";
+      waitlistObj.adjustedRank = maxRank + 1;
+      // Send the decline information to update
+      resultStore.updateResult({
+        _id: payload._id,
+        update: {
+          lotteryList: "Waiting List",
+          adjustedRank: maxRank + 1,
+        },
+      });
+      showSuccess(
+        `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Waiting List'`
+      );
+
+      setTimeout(() => {
+        showModal.value = false;
+        selectedResult.value = {};
+      }, 1000);
+    }
+  }
+};
 // This will check for available seats and run the makeOffer function if seats available
 const checkWaitlist = (payload: Object) => {
   // Get the capacity for the select school
@@ -268,7 +318,7 @@ const runDeclineOffer = (payload: Object) => {
     pendingStatus.value = true;
     buttonText.value = "Submit Changes";
     pendingChanges.value.push(
-      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer' (${payload.stage})`
+      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
     );
     pendingIds.value.push(payload._id);
   }
@@ -289,6 +339,11 @@ const runDeclineOffer = (payload: Object) => {
       date: new Date(),
     };
     changeStore.addChange(changeObj);
+    // REVISIT
+    // If the original status being decline is from the offered list, remove the Accept - School label
+    if (payload.lotteryList === "Offered List") {
+      deleteLabel(payload);
+    }
     // Update the Pinia store for the result being changed to "Decline"
     const declineObj = resultStore.results.find(
       (item) => item._id === payload._id
@@ -330,6 +385,8 @@ const runAction = (payload: Object) => {
     addLabel(payload);
   } else if (payload.action === "Delete Label Test") {
     deleteLabel(payload);
+  } else if (payload.action === "Add to Waiting List") {
+    addToWaitingList(payload);
   } else {
     console.log(user.value.id, user.value.email);
     console.log("runAction:", payload.action);
