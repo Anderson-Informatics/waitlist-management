@@ -172,6 +172,12 @@ const loadItem = (val: Item) => {
   buttonText.value = "Check";
   pendingIds.value = [];
 };
+const addLabel = (payload: Object) => {
+  resultStore.addLabel(payload);
+};
+const deleteLabel = (payload: Object) => {
+  resultStore.deleteLabel(payload);
+};
 const checkLowerOffers = (payload: Object) => {
   let offers = resultStore.results.filter(
     (item) =>
@@ -280,24 +286,14 @@ const runAcceptOffer = (payload: Object) => {
   }
   // Will run everytime to simulate the changes and/or make the changes
   adjustRankings(payload);
-  // Probably won't need to run the below option
-  //checkWaitlist(payload);
-
   // Check lower results from applicant
   const lowerResults = resultStore.results.filter(
     (item) =>
       item.submissionId === payload.submissionId &&
       item.ChoiceRank > payload.ChoiceRank
   );
-  console.log(lowerResults);
-  const offerList = resultStore.results.filter(
-    (item) =>
-      item.SchoolID === payload.SchoolID &&
-      item.Grade === payload.Grade &&
-      item.lotteryList === "Offered List"
-  );
-  const maxRank = Math.max(...offerList.map((x) => x.adjustedRank));
-  console.log(maxRank);
+  // Use the getMaxRank util function to get the maxRank of the Offered List
+  const maxRank = getMaxRank(payload, resultStore.results, "Offered List");
   // Run the decline offer for the other lower ranked Results
   lowerResults.forEach((item) => {
     let temp = {
@@ -305,7 +301,6 @@ const runAcceptOffer = (payload: Object) => {
       stage: payload.stage,
       action: "Decline lower ranked choices",
     };
-    console.log(temp);
     runDeclineOffer(temp);
   });
   // Once changes have been similated/pending, actually make the changes
@@ -335,7 +330,9 @@ const runAcceptOffer = (payload: Object) => {
     pendingOffer.lotteryList = "Offered List";
     pendingOffer.adjustedRank = maxRank + 1;
     pendingOffer.queueStatus = null;
-    // Send the decline information to update
+    // Add the Accept - School label
+    addLabel(payload);
+    // Send the offer information to update
     resultStore.updateResult({
       _id: payload._id,
       update: {
@@ -383,6 +380,10 @@ const runDeclineOffer = (payload: Object) => {
         date: new Date(),
       };
       changeStore.addChange(changeObj);
+      // Remove the original Accept - School label if it exists
+      if (payload.lotteryList === "Offered List") {
+        deleteLabel(payload);
+      }
       // Update the Pinia store for the result being changed to "Decline"
       const declineObj = resultStore.results.find(
         (item) => item._id === payload._id

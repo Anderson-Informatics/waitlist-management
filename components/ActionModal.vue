@@ -67,8 +67,7 @@
                             Please select an action
                           </option>
                           <option>Remove from Offer/Waiting List</option>
-                          <option>Add Label Test</option>
-                          <option>Delete Label Test</option>
+                          <option>Add to Waiting List</option>
                           <option>
                             Future options for other actions here...
                           </option>
