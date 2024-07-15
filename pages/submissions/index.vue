@@ -44,6 +44,12 @@ const headers: Header[] = [
   { text: "Last", value: "LastName", sortable: true },
   { text: "Date", value: "submissionDate", sortable: true, width: 100 },
   { text: "Grade", value: "Grade", width: 100 },
+  { text: "Top Placement", value: "topPlacement.School", sortable: true },
+  {
+    text: "Top Placement Status",
+    value: "topPlacement.status",
+    sortable: true,
+  },
 ];
 </script>
 <template>

@@ -68,6 +68,8 @@
                           </option>
                           <option>Remove from Offer/Waiting List</option>
                           <option>Add to Waiting List</option>
+                          <option>Move to Secondary Waiting List</option>
+                          <option>Confirm Enrollment Status</option>
                           <option>
                             Future options for other actions here...
                           </option>
@@ -172,7 +174,7 @@ const runAction = () => {
     SchoolID: props.result.SchoolID,
     Grade: props.result.Grade,
     lotteryList: props.result.lotteryList,
-    newLotteryList: "Declined Offer",
+    newLotteryList: "Forfeited",
     adjustedRank: props.result.adjustedRank,
     notes: notes.value,
   });

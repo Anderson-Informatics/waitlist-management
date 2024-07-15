@@ -7,5 +7,9 @@ export default function (payload: Object, results: Array, list: String) {
       item.lotteryList === list
   );
   const maxRank = Math.max(...filteredList.map((x) => x.adjustedRank));
-  return maxRank;
+  if (!maxRank) {
+    return 0;
+  } else {
+    return maxRank;
+  }
 }
