@@ -130,7 +130,7 @@ const lists = ref([
   "Offered List",
   "Waiting List",
   "Secondary Waiting List",
-  "Declined Offer",
+  "Forfeited",
 ]);
 
 // This is the toggle for the dropdown filters
@@ -301,7 +301,7 @@ const runAcceptOffer = (payload: Object) => {
       stage: payload.stage,
       action: "Decline lower ranked choices",
     };
-    runDeclineOffer(temp);
+    moveToList(temp);
   });
   // Once changes have been similated/pending, actually make the changes
   if (payload.stage === "Submit Changes") {
@@ -351,15 +351,15 @@ const runAcceptOffer = (payload: Object) => {
     }, 1000);
   }
 };
-const runDeclineOffer = (payload: Object) => {
-  if (payload.lotteryList !== "Declined Offer") {
+const moveToList = (payload: Object) => {
+  if (payload.lotteryList !== "Forfeited") {
     console.log(payload.action);
     // This will mark the pending status and continue to similate the changes
     if (payload.stage === "Check") {
       pendingStatus.value = true;
       buttonText.value = "Submit Changes";
       pendingChanges.value.push(
-        `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
+        `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Forfeited'`
       );
       pendingIds.value.push(payload._id);
     }
@@ -388,20 +388,20 @@ const runDeclineOffer = (payload: Object) => {
       const declineObj = resultStore.results.find(
         (item) => item._id === payload._id
       );
-      declineObj.lotteryList = "Declined Offer";
+      declineObj.lotteryList = "Forfeited";
       declineObj.adjustedRank = null;
       declineObj.queueStatus = null;
       // Send the decline information to update
       resultStore.updateResult({
         _id: payload._id,
         update: {
-          lotteryList: "Declined Offer",
+          lotteryList: "Forfeited",
           adjustedRank: null,
           queueStatus: null,
         },
       });
       showSuccess(
-        `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
+        `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Forfeited'`
       );
 
       setTimeout(() => {
@@ -419,7 +419,7 @@ const runAction = (payload: Object) => {
   if (payload.action === "Accept Offer") {
     runAcceptOffer(payload);
   } else if (payload.action === "Decline Offer") {
-    runDeclineOffer(payload);
+    moveToList(payload);
   } else {
     console.log(user.value.id, user.value.email);
     console.log("runAction:", payload.action);

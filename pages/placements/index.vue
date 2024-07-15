@@ -124,7 +124,7 @@ const lists = ref([
   "Offered List",
   "Waiting List",
   "Secondary Waiting List",
-  "Declined Offer",
+  "Forfeited",
 ]);
 
 // This is the toggle for the dropdown filters
@@ -134,7 +134,6 @@ const showListFilter = ref(false);
 
 // headers for the table
 const headers: Header[] = [
-  { text: "#", value: "rank", sortable: true },
   { text: "School", value: "School" },
   { text: "Grade", value: "Grade", width: 100 },
   { text: "List", value: "list", width: 150 },
@@ -184,7 +183,7 @@ const adjustRankings = (payload: Object) => {
   if (payload.stage === "Check") {
     // Add info to pending changes array to display as interim step
     pendingChanges.value.push(
-      `Move ${ids.length} applicants up the ${payload.lotteryList} (${payload.stage})`
+      `Move ${ids.length} applicants up the ${payload.lotteryList}`
     );
   }
   if (payload.stage === "Submit Changes") {
@@ -195,9 +194,7 @@ const adjustRankings = (payload: Object) => {
     // Send the ids to update the list rankings
     resultStore.adjustRankings(ids);
     //resultStore.adjustRankings(payload);
-    showSuccess(
-      `Moved ${ids.length} applicants up the ${payload.lotteryList} (${payload.stage})`
-    );
+    showSuccess(`Moved ${ids.length} applicants up the ${payload.lotteryList}`);
   }
 };
 // This is the function to pull an applicant off the waitlist
@@ -237,7 +234,7 @@ const makeOffer = (payload: Object) => {
   //adjustRankings(offer);
 };
 const addToWaitingList = (payload: Object) => {
-  if (payload.lotteryList === "Declined Offer") {
+  if (payload.lotteryList === "Forfeited") {
     // This will mark the pending status and continue to similate the changes
     if (payload.stage === "Check") {
       pendingStatus.value = true;
@@ -311,14 +308,17 @@ const modifyProperty = (arr, targetId, newProperty) => {
     targetObj.employee_name = newProperty;
   }
 };
-const runDeclineOffer = (payload: Object) => {
+const moveToList = (payload: Object, list: String) => {
   console.log(payload.action);
+  // Calculate the proper adjustedRank based on the new list
+  const maxRank = getMaxRank(payload, resultStore.results, list);
+  console.log(`Testing MaxRank Calculation: ${maxRank} on ${list}`);
   // This will mark the pending status and continue to similate the changes
   if (payload.stage === "Check") {
     pendingStatus.value = true;
     buttonText.value = "Submit Changes";
     pendingChanges.value.push(
-      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
+      `Change ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to '${list}''`
     );
     pendingIds.value.push(payload._id);
   }
@@ -341,27 +341,38 @@ const runDeclineOffer = (payload: Object) => {
     changeStore.addChange(changeObj);
     // REVISIT
     // If the original status being decline is from the offered list, remove the Accept - School label
-    if (payload.lotteryList === "Offered List") {
-      deleteLabel(payload);
-    }
+    //if (payload.lotteryList === "Offered List") {
+    //  deleteLabel(payload);
+    //}
     // Update the Pinia store for the result being changed to "Decline"
-    const declineObj = resultStore.results.find(
+    const movedObj = resultStore.results.find(
       (item) => item._id === payload._id
     );
-    declineObj.lotteryList = "Declined Offer";
-    declineObj.adjustedRank = null;
-    // Send the decline information to update
-    resultStore.updateResult({
-      _id: payload._id,
-      update: {
-        lotteryList: "Declined Offer",
-        adjustedRank: null,
-      },
-    });
+    movedObj.lotteryList = list;
+    if (list === "Forfeited") {
+      movedObj.adjustedRank = null;
+      // Send the decline information to update
+      resultStore.updateResult({
+        _id: payload._id,
+        update: {
+          lotteryList: list,
+          adjustedRank: null,
+        },
+      });
+    } else {
+      movedObj.adjustedRank = maxRank + 1;
+      // Send the decline information to update
+      resultStore.updateResult({
+        _id: payload._id,
+        update: {
+          lotteryList: list,
+          adjustedRank: maxRank + 1,
+        },
+      });
+    }
     showSuccess(
-      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to 'Declined Offer'`
+      `Changed ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade} from '${payload.lotteryList}' to '${list}'`
     );
-
     setTimeout(() => {
       showModal.value = false;
       selectedResult.value = {};
@@ -378,15 +389,59 @@ const addLabel = (payload: Object) => {
 const deleteLabel = (payload: Object) => {
   resultStore.deleteLabel(payload);
 };
+const confirmEnrollment = (payload: Object) => {
+  // This will mark the pending status and continue to simulate the changes
+  if (payload.stage === "Check") {
+    pendingStatus.value = true;
+    buttonText.value = "Submit Changes";
+    pendingChanges.value.push(
+      `Confirm Enrollment for ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade}`
+    );
+    pendingIds.value.push(payload._id);
+  }
+  if (payload.stage === "Submit Changes") {
+    // add the pending changes to the history log
+    const changeObj = {
+      changes: pendingChanges.value,
+      ids: pendingIds.value,
+      userId: user.value.id,
+      userEmail: user.value.email,
+      notes: payload.notes,
+      date: new Date(),
+    };
+    changeStore.addChange(changeObj);
+    // Update the Pinia store for the result being changed to "Decline"
+    const updObj = resultStore.results.find((item) => item._id === payload._id);
+    updObj.confirmedEnrollment = true;
+    // Send change to database
+    resultStore.updateResult({
+      _id: payload._id,
+      update: {
+        confirmedEnrollment: true,
+      },
+    });
+    showSuccess(
+      `Confirm Enrollment for ${payload.FirstName} ${payload.LastName} at ${payload.School}, grade ${payload.Grade}`
+    );
+    setTimeout(() => {
+      showModal.value = false;
+      selectedResult.value = {};
+    }, 1000);
+  }
+};
 const runAction = (payload: Object) => {
   if (payload.action === "Remove from Offer/Waiting List") {
-    runDeclineOffer(payload);
+    moveToList(payload, "Forfeited");
   } else if (payload.action === "Add Label Test") {
     addLabel(payload);
   } else if (payload.action === "Delete Label Test") {
     deleteLabel(payload);
   } else if (payload.action === "Add to Waiting List") {
-    addToWaitingList(payload);
+    moveToList(payload, "Waiting List");
+  } else if (payload.action === "Move to Secondary Waiting List") {
+    moveToList(payload, "Secondary Waiting List");
+  } else if (payload.action === "Confirm Enrollment Status") {
+    confirmEnrollment(payload);
   } else {
     console.log(user.value.id, user.value.email);
     console.log("runAction:", payload.action);
@@ -411,7 +466,6 @@ const runAction = (payload: Object) => {
   </div>
   <div class="w-full mb-4">
     <h2>View and modify placement decisions.</h2>
-    <button @click.prevent="">Test Label Add</button>
   </div>
   <div class="flex">
     <div class="relative w-full grow">
