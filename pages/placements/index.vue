@@ -339,18 +339,21 @@ const moveToList = (payload: Object, list: String) => {
       date: new Date(),
     };
     changeStore.addChange(changeObj);
-    // REVISIT
     // If the original status being decline is from the offered list, remove the Accept - School label
-    //if (payload.lotteryList === "Offered List") {
-    //  deleteLabel(payload);
-    //}
+    if (payload.lotteryList === "Offered List" && list === "Forfeited") {
+      deleteLabel(payload, "Accept");
+    } else if (payload.lotteryList === "Waiting List" && list === "Forfeited") {
+      // Remove the original Waitlist - School label if it exists
+      deleteLabel(payload, "Waitlist");
+    } else {
+    }
     // Update the Pinia store for the result being changed to "Decline"
-    const movedObj = resultStore.results.find(
+    const updateObj = resultStore.results.find(
       (item) => item._id === payload._id
     );
-    movedObj.lotteryList = list;
+    updateObj.lotteryList = list;
     if (list === "Forfeited") {
-      movedObj.adjustedRank = null;
+      updateObj.adjustedRank = null;
       // Send the decline information to update
       resultStore.updateResult({
         _id: payload._id,
@@ -360,7 +363,7 @@ const moveToList = (payload: Object, list: String) => {
         },
       });
     } else {
-      movedObj.adjustedRank = maxRank + 1;
+      updateObj.adjustedRank = maxRank + 1;
       // Send the decline information to update
       resultStore.updateResult({
         _id: payload._id,
@@ -383,11 +386,11 @@ const manualPositionChange = (payload: Object) => {
   payload.newList;
   payload.lotteryList;
 };
-const addLabel = (payload: Object) => {
-  resultStore.addLabel(payload);
+const addLabel = (payload: Object, type: String) => {
+  resultStore.addLabel(payload, type);
 };
-const deleteLabel = (payload: Object) => {
-  resultStore.deleteLabel(payload);
+const deleteLabel = (payload: Object, type: String) => {
+  resultStore.deleteLabel(payload, type);
 };
 const confirmEnrollment = (payload: Object) => {
   // This will mark the pending status and continue to simulate the changes
