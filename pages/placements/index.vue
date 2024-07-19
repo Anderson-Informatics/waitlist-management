@@ -345,7 +345,11 @@ const moveToList = (payload: Object, list: String) => {
     } else if (payload.lotteryList === "Waiting List" && list === "Forfeited") {
       // Remove the original Waitlist - School label if it exists
       deleteLabel(payload, "Waitlist");
-    } else {
+    } else if (
+      payload.lotteryList === "Forefeited" &&
+      list === "Waiting List"
+    ) {
+      addLabel(payload, "Waitlist");
     }
     // Update the Pinia store for the result being changed to "Decline"
     const updateObj = resultStore.results.find(
