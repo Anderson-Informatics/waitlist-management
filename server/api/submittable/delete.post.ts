@@ -1,7 +1,9 @@
 export default defineEventHandler(async (event) => {
   // Get data from body
   const body = await readBody(event);
-  console.log(body);
+  console.log(
+    `Delete API: ${body.type} label for ${body.FirstName} ${body.LastName} at ${body.School}: ${body.notes}`
+  );
 
   // Get the runtimeconfig SUBMITTABLE API KEY
   const SUBMITTABLE_API_KEY = useRuntimeConfig().SUBMITTABLE_API_KEY;
@@ -17,11 +19,33 @@ export default defineEventHandler(async (event) => {
       3639: "dbe83e8d-b4af-456a-ae3b-80f4e86e364a",
       1552: "b1c5e26e-3ac1-416c-9888-751ef472fdcc",
     };
-    let labelId = acceptIds[body.SchoolID];
-    console.log(`labelId: ${labelId} | API Key: ${SUBMITTABLE_API_KEY}`);
+    // Waitlist - School Label UUIDs
+    const waitIds = {
+      689: "6a6463d9-c688-47e5-b28b-f4c46b93d663", // Waitlist - Chrysler
+      1084: "c455c96c-668a-47df-b757-ea211fecd604", // Waitlist - Edison
+      1552: "39eedd2a-5bb9-4bed-a7ca-66e83a38259a", // Waitlist - Palmer
+      2882: "dbe63e7a-1d79-4f84-a002-ff0e3e3f2b7e", // Waitlist - Bates
+      3638: "9210baf6-5d7b-4b8f-83c5-f26e04ef22d7", // Waitlist - TSM
+      3639: "676c58a4-f879-4ab5-8589-b0dda2be8f2b", // Waitlist - Edmonson
+      7326: "afd1a207-6448-4c0e-8d00-e69e007b9ce1", // Waitlist - FLICS
+    };
+    const setLabelId = (body, acceptIds, waitIds) => {
+      // Assign a labelId based on the school
+      if (body.type === "Accept") {
+        return acceptIds[body.SchoolID];
+      } else if (body.type === "Waitlist") {
+        return waitIds[body.SchoolID];
+      } else if (body.type === "Update") {
+        return "f03b84d4-f15e-4beb-aab7-32a6684a45ed"; // Updated Placement
+      } else {
+        return "";
+      }
+    };
+    const labelId = setLabelId(body, acceptIds, waitIds);
+
     // ${result.submissionId}
     const response = await $fetch(
-      `https://submittable-api.submittable.com/v4/submissions/3d01655a-8034-43ca-86d1-db16be0b3601/labels/${labelId}`,
+      `https://submittable-api.submittable.com/v4/submissions/${body.submissionId}/labels/${labelId}`,
       {
         method: "DELETE",
         headers: {

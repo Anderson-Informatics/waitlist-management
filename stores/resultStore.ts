@@ -64,22 +64,22 @@ export const useResultStore = defineStore("result-store", {
       }
       console.log(ids);
     },
-    async addLabel(result) {
+    async addLabel(result, type: String) {
       try {
         let response = await $fetch("/api/submittable/add", {
           method: "POST",
-          body: result,
+          body: { ...result, type: type },
         });
         console.log(response);
       } catch (e) {
         console.log(e.message);
       }
     },
-    async deleteLabel(result) {
+    async deleteLabel(result, type: String) {
       try {
         let response = await $fetch("/api/submittable/delete", {
           method: "POST",
-          body: result,
+          body: { ...result, type: type },
         });
         console.log(response);
       } catch (e) {
