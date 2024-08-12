@@ -30,7 +30,7 @@ const navigation = [
   { name: "Submissions", href: "/submissions" },
   { name: "Placements", href: "/placements" },
   { name: "Offer Queue", href: "/queue" },
-  //{ name: "Reports", href: "#", current: false },
+  { name: "School Capacity", href: "/capacity" },
 ];
 const userNavigation = [
   //{ name: "Your Profile", href: "#" },
