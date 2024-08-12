@@ -8,16 +8,6 @@ const schema: mongoose.Schema = new mongoose.Schema({
   Lng: Number,
   Type: String,
   ShortName: String,
-  CapPK: Number,
-  CapK: Number,
-  Cap1: Number,
-  Cap2: Number,
-  Cap3: Number,
-  Cap4: Number,
-  Cap5: Number,
-  Cap6: Number,
-  Cap7: Number,
-  Cap8: Number,
   Capacity: Object,
 });
 

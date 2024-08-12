@@ -5,6 +5,7 @@ export const useResultStore = defineStore("result-store", {
     // list all results
     results: [] as Result[],
     schools: [] as School[],
+    capacity: [] as Capacity[],
     pendingOffers: [] as Result[],
   }),
   getters: {
@@ -37,6 +38,26 @@ export const useResultStore = defineStore("result-store", {
       } catch (e) {
         console.log(e.message);
       }
+    },
+    async getCapacity() {
+      try {
+        let data = await $fetch("/api/schools/capacity");
+        this.capacity = data;
+      } catch (e) {
+        console.log(e.message);
+      }
+    },
+    async updateCapacity(school) {
+      try {
+        let response = await $fetch(`/api/schools/capacity/update`, {
+          method: "POST",
+          body: school,
+        });
+        console.log(response);
+      } catch (e) {
+        console.log(e.message);
+      }
+      console.log(school);
     },
     async updateResult(result) {
       try {
