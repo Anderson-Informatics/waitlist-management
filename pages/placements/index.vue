@@ -44,22 +44,6 @@ const showError = () => {
     life: 3000,
   });
 };
-const showSecondary = () => {
-  toast.add({
-    severity: "secondary",
-    summary: "Secondary Message",
-    detail: "Message Content",
-    life: 3000,
-  });
-};
-const showContrast = () => {
-  toast.add({
-    severity: "contrast",
-    summary: "Contrast Message",
-    detail: "Message Content",
-    life: 3000,
-  });
-};
 
 // Get the user value for change logging
 const user = useSupabaseUser();
@@ -70,6 +54,53 @@ const search = ref("");
 const gradeFilter = ref([]);
 const schoolFilter = ref([]);
 const listFilter = ref([]);
+
+// This is the fitlered values for the Excel export
+const filterData = computed(() => {
+  const gradeFilterApplied = gradeFilter.value.length ? true : false;
+  const schoolFilterApplied = schoolFilter.value.length ? true : false;
+  const listFilterApplied = listFilter.value.length ? true : false;
+  if (gradeFilterApplied && schoolFilterApplied && listFilterApplied) {
+    return resultStore.results.filter(
+      (item) =>
+        gradeFilter.value.includes(item.Grade) &&
+        schoolFilter.value.includes(item.School) &&
+        listFilter.value.includes(item.lotteryList)
+    );
+  } else if (gradeFilterApplied && schoolFilterApplied) {
+    return resultStore.results.filter(
+      (item) =>
+        gradeFilter.value.includes(item.Grade) &&
+        schoolFilter.value.includes(item.School)
+    );
+  } else if (gradeFilterApplied && listFilterApplied) {
+    return resultStore.results.filter(
+      (item) =>
+        gradeFilter.value.includes(item.Grade) &&
+        listFilter.value.includes(item.lotteryList)
+    );
+  } else if (schoolFilterApplied && listFilterApplied) {
+    return resultStore.results.filter(
+      (item) =>
+        schoolFilter.value.includes(item.School) &&
+        listFilter.value.includes(item.lotteryList)
+    );
+  } else if (gradeFilterApplied) {
+    return resultStore.results.filter((item) =>
+      gradeFilter.value.includes(item.Grade)
+    );
+  } else if (schoolFilterApplied) {
+    return resultStore.results.filter((item) =>
+      schoolFilter.value.includes(item.School)
+    );
+  } else if (listFilterApplied) {
+    return resultStore.results.filter((item) =>
+      listFilter.value.includes(item.lotteryList)
+    );
+  } else {
+    return resultStore.results;
+  }
+});
 
 // This is the filter function used by vue3-easy-data-table
 const filterOptions = computed((): FilterOption[] => {
@@ -152,6 +183,11 @@ const pendingChanges = ref([]);
 const pendingStatus = ref(false);
 const buttonText = ref("Check");
 const pendingIds = ref([]);
+
+// A custom CSV export for the filtered results
+const exportData = () => {
+  // Check if there are results being displayed
+};
 
 // This will reset the edit modal component
 const loadItem = (val: Item) => {
@@ -485,6 +521,31 @@ const runAction = (payload: Object) => {
         class="p-2 mb-2 w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-md text-sm"
       />
     </div>
+    <button
+      type="button"
+      class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 p-2 mb-2 ml-2 text-sm text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+    >
+      <DownloadExcel
+        :data="filterData"
+        type="xlsx"
+        worksheet="Placements"
+        name="Placement_Results.xlsx"
+        ><svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="size-5"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m9 13.5 3 3m0 0 3-3m-3 3v-6m1.06-4.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+          />
+        </svg>
+      </DownloadExcel>
+    </button>
   </div>
   <ClientOnly>
     <EasyDataTable

@@ -7107,6 +7107,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"downloadjs@npm:^1.4.7":
+  version: 1.4.7
+  resolution: "downloadjs@npm:1.4.7"
+  checksum: 10c0/a89af5fc0b0034402ca2d58c8a09e2baaabdd6b7be47bf227755f50bddd3463eae1abaab6bf68b9b4814ce7cc39d63af9066df8a94c5269a30e75eb57c622f38
+  languageName: node
+  linkType: hard
+
 "duplexer@npm:^0.1.2":
   version: 0.1.2
   resolution: "duplexer@npm:0.1.2"
@@ -8159,6 +8166,13 @@ __metadata:
     escape-string-regexp: "npm:^5.0.0"
     is-unicode-supported: "npm:^1.2.0"
   checksum: 10c0/ce0f17d4ea8b0fc429c5207c343534a2f5284ecfb22aa08607da7dc84ed9e1cf754f5b97760e8dcb98d3c9d1a1e4d3d578fe3b5b99c426f05d0f06c7ba618e16
+  languageName: node
+  linkType: hard
+
+"file-saver@npm:^2.0.5":
+  version: 2.0.5
+  resolution: "file-saver@npm:2.0.5"
+  checksum: 10c0/0a361f683786c34b2574aea53744cb70d0a6feb0fa5e3af00f2fcb6c9d40d3049cc1470e38c6c75df24219f247f6fb3076f86943958f580e62ee2ffe897af8b1
   languageName: node
   linkType: hard
 
@@ -16723,6 +16737,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"vue-json-excel3@npm:^1.0.29":
+  version: 1.0.29
+  resolution: "vue-json-excel3@npm:1.0.29"
+  dependencies:
+    downloadjs: "npm:^1.4.7"
+    file-saver: "npm:^2.0.5"
+    xlsx: "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  checksum: 10c0/44d2a40be72aa433ae22fd88a8ab1dd7f19951fd8b2900c7ac76940e023fb3f26fec1b57085a904666f4b5e21bf30610e1358473f48b7995f2af4447f86c944d
+  languageName: node
+  linkType: hard
+
 "vue-router@npm:^4.2.5, vue-router@npm:latest":
   version: 4.2.5
   resolution: "vue-router@npm:4.2.5"
@@ -16859,6 +16884,7 @@ __metadata:
     typescript: "npm:^5.3.3"
     vite: "npm:5.0.10"
     vue: "npm:3.3.13"
+    vue-json-excel3: "npm:^1.0.29"
     vue-router: "npm:latest"
     vue-tsc: "npm:^1.8.27"
     vue3-easy-data-table: "npm:^1.5.47"
@@ -17121,6 +17147,15 @@ __metadata:
   version: 5.1.0
   resolution: "xdg-basedir@npm:5.1.0"
   checksum: 10c0/c88efabc71ffd996ba9ad8923a8cc1c7c020a03e2c59f0ffa72e06be9e724ad2a0fccef488757bc6ed3d8849d753dd25082d1035d95cb179e79eae4d034d0b80
+  languageName: node
+  linkType: hard
+
+"xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz":
+  version: 0.20.3
+  resolution: "xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
+  bin:
+    xlsx: ./bin/xlsx.njs
+  checksum: 10c0/eb20749e56ffa23ffc4a5a6fd983524e0406308e53992e24112424de9f30ec64d7dd80e8e56363e39c3853687f7b4151f97a6f5373050b23c0c2758796803b6b
   languageName: node
   linkType: hard
 
