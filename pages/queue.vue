@@ -254,14 +254,15 @@ const checkWaitlist = (payload: Object) => {
   const capacity = resultStore.schools.filter(
     (item) => item.SchoolID === payload.SchoolID
   )[0].Capacity[payload.Grade];
+  console.log("From checkWaitlist function: ", capacity);
   // Calculate the number of seats filled
   const filled = resultStore.results.filter(
     (item) =>
       item.SchoolID === payload.SchoolID &&
       item.Grade === payload.Grade &&
-      ["Offered List", "Offer Pending", "Confirmed Enrollment"].includes(
-        item.lotteryList
-      )
+      // Fix this to account for offer pending students
+      (item.lotteryList === "Offered List" ||
+        item.queueStatus === "Offer Pending")
   ).length;
   if (filled <= capacity) {
     makeOffer(payload);
@@ -354,7 +355,7 @@ const runAcceptOffer = (payload: Object) => {
 };
 const moveToList = (payload: Object, list: String) => {
   if (payload.lotteryList !== "Forfeited") {
-    console.log(payload.action);
+    console.log(payload.action, payload.lotteryList, payload.queueStatus, list);
     // Calculate the proper adjustedRank based on the new list
     const maxRank = getMaxRank(payload, resultStore.results, list);
     // This will mark the pending status and continue to similate the changes
@@ -368,7 +369,12 @@ const moveToList = (payload: Object, list: String) => {
     }
     // Will run everytime to simulate the changes and/or make the changes
     adjustRankings(payload);
-    if (payload.lotteryList === "Offered List") {
+    if (
+      (payload.lotteryList === "Offered List" ||
+        payload.queueStatus === "Offer Pending") &&
+      (list === "Forfeited" || list === "Secondary Waiting List")
+    ) {
+      console.log("Met testing criteria");
       checkWaitlist(payload);
     }
     // Once changes have been similated/pending, actually make the changes
