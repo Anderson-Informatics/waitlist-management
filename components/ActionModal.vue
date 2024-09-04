@@ -176,6 +176,7 @@ const runAction = () => {
     lotteryList: props.result.lotteryList,
     newLotteryList: "Forfeited",
     adjustedRank: props.result.adjustedRank,
+    queueStatus: props.result.queueStatus,
     notes: notes.value,
   });
   // This will hopefully reset the form after submission

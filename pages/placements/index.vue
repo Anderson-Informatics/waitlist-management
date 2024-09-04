@@ -330,9 +330,9 @@ const checkWaitlist = (payload: Object) => {
     (item) =>
       item.SchoolID === payload.SchoolID &&
       item.Grade === payload.Grade &&
-      ["Offered List", "Offer Pending", "Confirmed Enrollment"].includes(
-        item.lotteryList
-      )
+      // Fix this to account for offer pending students
+      (item.lotteryList === "Offered List" ||
+        item.queueStatus === "Offer Pending")
   ).length;
   if (filled <= capacity) {
     makeOffer(payload);
@@ -360,7 +360,11 @@ const moveToList = (payload: Object, list: String) => {
   }
   // Will run everytime to simulate the changes and/or make the changes
   adjustRankings(payload);
-  if (payload.lotteryList === "Offered List") {
+  if (
+    (payload.lotteryList === "Offered List" ||
+      payload.queueStatus === "Offer Pending") &&
+    (list === "Forfeited" || list === "Secondary Waiting List")
+  ) {
     checkWaitlist(payload);
   }
   // Once changes have been similated/pending, actually make the changes

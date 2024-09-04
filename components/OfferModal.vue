@@ -171,6 +171,7 @@ const runAction = () => {
     Grade: props.result.Grade,
     lotteryList: props.result.lotteryList,
     adjustedRank: props.result.adjustedRank,
+    queueStatus: props.result.queueStatus,
     notes: notes.value,
   });
   if (props.button === "Submit Changes") {
